@@ -181,7 +181,7 @@ function loadSection(){
     var w=secWords[i], st=getStage(lib,w.word);
     if(st.s===0) nw.push(w);
     else if(st.s>=1&&st.s<=5&&st.r<=now) due.push(w);
-    else if(st.s>=1&&st.s<=5&&st.r>now) lw.push(w);
+    else if(st.s>=1&&st.s<=5&&st.r>now){ w._s=st.s; w._r=st.r; lw.push(w); }
     else if(st.s>=6) mw.push(w);
   }
 
@@ -217,7 +217,7 @@ function renderList(){
     var w=words[i], ms=(w.meanings||[]).join(', ');
     var isM = S.filter==='mastered', isL = S.filter==='learning';
     html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word||w.w)+'" data-w="'+esc(w.word||w.w)+'" data-type="'+(isM?'mastered':S.filter)+'">';
-    html += '<span class="ic">'+(isL?w.s+'/6':isM?'✓':'')+'</span>';
+    html += '<span class="ic">'+(isL?(w._s||0)+'/6':isM?'✓':'')+'</span>';
     html += '<span class="w">'+esc(w.word||w.w)+'</span>';
     html += '<span class="m">'+esc(ms)+'</span>';
     if(isL) html += '<span class="due-in">'+countdown(w.r)+'</span>';
