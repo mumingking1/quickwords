@@ -264,10 +264,11 @@ function onSwipe(e){
   var absDx=Math.abs(dx), absDy=Math.abs(dy);
   if(absDx<25 && absDy<25) return; // Click, let onClick handle
   if(absDx<absDy) return; // Vertical scroll, ignore
+  e.preventDefault(); // Block subsequent click event
   var word=getRowWord(this); if(!word) return;
 
-  if(dx<-50) { advanceWord(S.lib,word); removeWord(word,'due','new','mastered'); } // Left = 认识
-  else if(dx>50) { resetWord(S.lib,word); removeWord(word,'due'); } // Right = 不认识
+  if(dx<-50) { advanceWord(S.lib,word); removeWord(word,'due','new','mastered'); }
+  else if(dx>50) { resetWord(S.lib,word); removeWord(word,'due'); }
 }
 
 function onClickRow(e){
@@ -332,7 +333,7 @@ document.getElementById('secSel').addEventListener('change',function(){S.sec=par
 
 // ====== VIEW SWITCH ======
 function showList(){
-  document.getElementById('listView').style.display='block';
+  document.getElementById('listView').style.display='flex';
   document.getElementById('detailView').style.display='none';
   document.getElementById('progressView').style.display='none';
   renderList();
