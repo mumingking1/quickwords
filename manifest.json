@@ -1,0 +1,9 @@
+{
+  "name": "速词 - 极简背单词",
+  "short_name": "速词",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "icons": []
+}

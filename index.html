@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFFFFF">
+<title>速词</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#FFF;color:#111;overflow:hidden;height:100vh}
+#app{display:flex;flex-direction:column;height:100vh}
+.header{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #EEE;gap:8px}
+.header select{font-size:15px;color:#666;border:none;background:none;padding:4px;-webkit-appearance:none}
+.search-bar{padding:10px 16px;border-bottom:1px solid #EEE}
+.search-bar input{width:100%;height:40px;background:#F5F5F5;border:none;border-radius:4px;padding:0 12px;font-size:15px;outline:none}
+.stats{display:flex;align-items:center;padding:8px 16px;border-bottom:1px solid #EEE;font-size:13px;color:#999}
+.stats .link{color:#BBB;margin-left:auto;cursor:pointer}
+.word-list{flex:1;overflow-y:auto;padding:0 16px}
+.word-item{display:flex;align-items:baseline;padding:14px 4px;border-bottom:1px solid #FAFAFA;cursor:pointer;user-select:none;-webkit-user-select:none}
+.word-item .icon{font-size:14px;color:#CCC;width:24px;text-align:center;margin-right:8px;flex-shrink:0}
+.word-item .w{font-size:18px;font-weight:700;color:#111;min-width:120px;margin-right:12px}
+.word-item .m{font-size:15px;color:#999;flex:1;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-text{text-align:center;color:#CCC;font-size:15px;padding-top:120px}
+#detailView{display:none;flex-direction:column;height:100vh;overflow-y:auto;padding:0 16px}
+.detail-back{font-size:28px;color:#BBB;cursor:pointer;padding:16px 0}
+.detail-title{font-size:36px;font-weight:700;margin-bottom:4px}
+.detail-pos{font-size:14px;color:#999;background:#F5F5F5;display:inline-block;padding:2px 8px;border-radius:2px;margin-bottom:16px}
+.detail-section{margin-top:20px}
+.detail-section h3{font-size:13px;color:#BBB;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #EEE}
+.detail-section .meanings{font-size:17px;color:#333;line-height:1.8}
+.col-item{display:flex;padding:8px 0;border-bottom:1px solid #FAFAFA}
+.col-item .ph{font-size:17px;font-weight:700;color:#111;min-width:200px;margin-right:16px}
+.col-item .pm{font-size:15px;color:#999}
+.sent-item{padding:12px 0;border-bottom:1px solid #FAFAFA}
+.sent-item .en{font-size:15px;color:#333;line-height:1.6}
+.sent-item .zh{font-size:14px;color:#999;line-height:1.6;margin-top:2px}
+.detail-actions{display:flex;gap:16px;margin:32px 0;padding-top:24px;border-top:1px solid #EEE}
+.detail-actions button{flex:1;padding:14px;font-size:16px;border-radius:8px;border:1px solid #DDD;background:#FFF;cursor:pointer}
+.detail-actions .btn-know{border-color:#111;color:#111}
+.detail-actions .btn-forgot{color:#999}
+#progressView{display:none;flex-direction:column;height:100vh;overflow-y:auto;padding:0 16px}
+.progress-back{font-size:28px;color:#BBB;cursor:pointer;padding:16px 0}
+.stats-grid{display:flex;padding:16px 0;border-bottom:1px solid #EEE}
+.stat-cell{flex:1;text-align:center}
+.stat-cell .num{font-size:42px;font-weight:700;display:block}
+.stat-cell .lbl{font-size:12px;color:#BBB;margin-top:2px}
+.stat-cell .num.due{color:#E8A838}
+.stat-cell .num.new{color:#4A90D9}
+.stat-cell .num.learning{color:#7B9E3F}
+.stat-cell .num.mastered{color:#999}
+.pg-section-title{font-size:13px;color:#BBB;padding:16px 0 6px}
+.reset-btn{text-align:center;font-size:14px;color:#BBB;padding:24px 0;cursor:pointer}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center}
+.modal-box{background:#FFF;border-radius:12px;padding:24px;margin:0 40px;text-align:center;max-width:300px}
+.modal-box h2{font-size:20px;margin-bottom:12px}
+.modal-box p{font-size:14px;color:#666;line-height:1.8;white-space:pre-line}
+.modal-box button{width:100%;margin-top:20px;padding:12px;font-size:16px;background:#111;color:#FFF;border:none;border-radius:8px;cursor:pointer}
+.toast{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.75);color:#FFF;padding:12px 24px;border-radius:8px;font-size:14px;z-index:1000}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="listView">
+    <div class="header">
+      <select id="libSelect"></select>
+      <select id="secSelect"></select>
+    </div>
+    <div class="search-bar"><input id="searchInput" placeholder="搜索单词..." autocomplete="off"></div>
+    <div class="stats"><span id="statsText"></span><span class="link" onclick="showProgress()">进度 ›</span></div>
+    <div class="word-list" id="wordList"></div>
+  </div>
+
+  <div id="detailView">
+    <div class="detail-back" onclick="showList()">‹</div>
+    <div id="detailContent"></div>
+    <div class="detail-actions">
+      <button class="btn-forgot" onclick="detailForgot()">不认识</button>
+      <button class="btn-know" onclick="detailKnow()">认识</button>
+    </div>
+  </div>
+
+  <div id="progressView">
+    <div class="progress-back" onclick="showList()">‹</div>
+    <div id="progressContent"></div>
+    <div class="reset-btn" onclick="resetAll()">一键重置本词库进度</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="checkinModal"><div class="modal-box"><h2>打卡</h2><p id="checkinMsg"></p><button onclick="closeCheckin()">开始</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="data/cet6.js"></script>
+<script src="data/cet4.js"></script>
+<script src="data/postgrad.js"></script>
+
+<script>
+// ============ DATA ============
+var WORD_DATA = { cet4: typeof CET4_DATA!=='undefined'?CET4_DATA:[], cet6: typeof CET6_DATA!=='undefined'?CET6_DATA:[], postgrad: typeof POSTGRAD_DATA!=='undefined'?POSTGRAD_DATA:[] };
+var INTERVALS = [0, 86400000, 259200000, 604800000, 1296000000, 2592000000];
+var SECTION_SIZE = 75;
+var LIBS = [{k:'cet4',l:'四级'},{k:'cet6',l:'六级'},{k:'postgrad',l:'考研'}];
+var STAGE_NAMES = ['未学习','第1次','第2次(1天)','第3次(3天)','第4次(7天)','第5次(15天)','已掌握'];
+
+var state = { lib:'cet4', section:0, words:[], allWords:[], dueCount:0, newCount:0, detailWord:null };
+
+// ============ STORAGE ============
+function loadProgress(){ try{return JSON.parse(localStorage.getItem('qw_v2'))||{}}catch(e){return{}} }
+function saveProgress(p){ try{localStorage.setItem('qw_v2',JSON.stringify(p))}catch(e){} }
+
+// Migration from v1
+var P = loadProgress();
+if(!P._migrated){
+  var old = localStorage.getItem('quickwords_progress');
+  if(old){ try{
+    var o = JSON.parse(old);
+    LIBS.forEach(function(l){
+      if(o[l.k] && o[l.k].learned){
+        if(!P[l.k]) P[l.k]={words:{}};
+        o[l.k].learned.forEach(function(w){ P[l.k].words[w]={s:6,r:0}; });
+      }
+    });
+  }catch(e){} }
+  P._migrated = true;
+  saveProgress(P);
+}
+
+function getWordStage(lib, word){
+  var p = loadProgress();
+  var w = p[lib] && p[lib].words && p[lib].words[word];
+  return w || {s:0,r:0};
+}
+
+function advanceWord(lib, word){
+  var p = loadProgress();
+  var stage = getWordStage(lib, word);
+  var newS = stage.s + 1;
+  if(!p[lib]) p[lib] = {words:{}};
+  p[lib].words[word] = newS>=6 ? {s:6,r:0} : {s:newS, r:Date.now()+INTERVALS[newS]};
+  // daily tracking
+  var today = getToday();
+  if(!p[lib].daily) p[lib].daily = {};
+  if(!p[lib].daily[today]) p[lib].daily[today] = {reviewed:0,newLearned:0};
+  if(stage.s===0) p[lib].daily[today].newLearned++; else p[lib].daily[today].reviewed++;
+  saveProgress(p);
+}
+
+function resetWord(lib, word){
+  var p = loadProgress();
+  if(!p[lib]) p[lib] = {words:{}};
+  p[lib].words[word] = {s:1, r:Date.now()+INTERVALS[1]};
+  var today = getToday();
+  if(!p[lib].daily) p[lib].daily = {};
+  if(!p[lib].daily[today]) p[lib].daily[today] = {reviewed:0,newLearned:0};
+  p[lib].daily[today].reviewed++;
+  saveProgress(p);
+}
+
+function getToday(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
+function pad(n){ return n<10?'0'+n:''+n }
+
+// ============ SHUFFLE ============
+function shuffle(arr){ var a=[]; for(var i=0;i<arr.length;i++)a.push(arr[i]); for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+
+// ============ RENDER ============
+function renderList(){
+  var lib = state.lib, secIdx = state.section;
+  var all = WORD_DATA[lib] || [];
+  var start = secIdx * SECTION_SIZE, end = Math.min(start+SECTION_SIZE, all.length);
+  var secWords = all.slice(start, end);
+  var now = Date.now(), due=[], newWords=[], q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+
+  for(var i=0;i<secWords.length;i++){
+    var w = secWords[i];
+    var stage = getWordStage(lib, w.word);
+    if(stage.s===0) newWords.push(w);
+    else if(stage.s>=1&&stage.s<=5&&stage.r<=now) due.push(w);
+  }
+
+  due = shuffle(due); newWords = shuffle(newWords);
+  if(q){
+    due = filterWords(due, q); newWords = filterWords(newWords, q);
+  }
+
+  var html = '';
+  for(var i=0;i<due.length;i++){
+    html += '<div class="word-item" data-w="'+esc(due[i].word)+'" data-type="review">'+
+      '<span class="icon">↻</span><span class="w">'+esc(due[i].word)+'</span><span class="m">'+(due[i].meanings||[]).join(', ')+'</span></div>';
+  }
+  for(var i=0;i<newWords.length;i++){
+    html += '<div class="word-item" data-w="'+esc(newWords[i].word)+'" data-type="new">'+
+      '<span class="icon">○</span><span class="w">'+esc(newWords[i].word)+'</span><span class="m">'+(newWords[i].meanings||[]).join(', ')+'</span></div>';
+  }
+  if(!html) html = '<div class="empty-text">'+(q?'无匹配单词':'本节暂无待复习或新词')+'</div>';
+
+  document.getElementById('wordList').innerHTML = html;
+  document.getElementById('statsText').textContent = '待复习 '+due.length+' · 新词 '+newWords.length;
+
+  // Bind touch events
+  var items = document.querySelectorAll('.word-item');
+  for(var i=0;i<items.length;i++){
+    items[i].addEventListener('touchstart', touchStart, {passive:true});
+    items[i].addEventListener('touchend', touchEnd, {passive:false});
+    items[i].addEventListener('click', function(e){
+      var w = this.dataset.w; if(!w) return;
+      state.detailWord = w; showDetail();
+    });
+  }
+
+  state.dueCount = due.length; state.newCount = newWords.length;
+}
+
+function filterWords(words, q){
+  return words.filter(function(w){
+    if(w.word.toLowerCase().indexOf(q)>=0) return true;
+    var m = w.meanings||[];
+    for(var i=0;i<m.length;i++){ if(m[i].toLowerCase().indexOf(q)>=0) return true; }
+    return false;
+  });
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Swipe handling
+var touchStartX=0, touchStartY=0;
+function touchStart(e){ touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }
+function touchEnd(e){
+  var dx = e.changedTouches[0].clientX - touchStartX;
+  var dy = e.changedTouches[0].clientY - touchStartY;
+  var absDx = Math.abs(dx), absDy = Math.abs(dy);
+  var word = this.dataset.w;
+  if(!word) return;
+
+  if(absDx<20 && absDy<20) return; // let click handle it
+  if(dx<-50 && absDx>absDy){ advanceWord(state.lib, word); renderList(); }
+  else if(dx>50 && absDx>absDy){ resetWord(state.lib, word); renderList(); }
+}
+
+// ============ SECTIONS ============
+function buildSections(){
+  var all = WORD_DATA[state.lib] || [];
+  var count = Math.ceil(all.length / SECTION_SIZE);
+  var sel = document.getElementById('secSelect');
+  sel.innerHTML = '';
+  for(var i=0;i<count;i++){
+    var s = i*SECTION_SIZE+1, e = Math.min((i+1)*SECTION_SIZE, all.length);
+    sel.innerHTML += '<option value="'+i+'">第'+(i+1)+'节 ('+s+'-'+e+')</option>';
+  }
+  sel.value = state.section;
+}
+
+function buildLibs(){
+  var sel = document.getElementById('libSelect');
+  sel.innerHTML = '';
+  for(var i=0;i<LIBS.length;i++){
+    sel.innerHTML += '<option value="'+LIBS[i].k+'">'+LIBS[i].l+'</option>';
+    if(LIBS[i].k===state.lib) sel.value = state.lib;
+  }
+}
+
+// ============ VIEW SWITCHING ============
+function showList(){
+  document.getElementById('listView').style.display = 'block';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('progressView').style.display = 'none';
+  renderList();
+}
+
+function showDetail(){
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'flex';
+  document.getElementById('progressView').style.display = 'none';
+
+  var lib = state.lib, word = state.detailWord;
+  var data = findWord(lib, word);
+  if(!data){ toast('未找到单词'); showList(); return; }
+
+  var stage = getWordStage(lib, word);
+  var html = '<div class="detail-title">'+esc(word)+'</div>';
+  html += '<div style="font-size:14px;color:#999;margin-bottom:12px">'+STAGE_NAMES[Math.min(stage.s,6)]+'</div>';
+  if(data.phonetic_uk) html += '<div style="font-size:15px;color:#666">英 /'+esc(data.phonetic_uk)+'/ 美 /'+esc(data.phonetic_us||data.phonetic_uk)+'/</div>';
+  if(data.pos) html += '<div class="detail-pos">'+esc(data.pos)+'</div>';
+  html += '<div class="detail-section"><h3>释义</h3><div class="meanings">'+(data.meanings||[]).join(', ')+'</div></div>';
+  if(data.collocations && data.collocations.length){
+    html += '<div class="detail-section"><h3>固定搭配</h3>';
+    data.collocations.forEach(function(c){ html += '<div class="col-item"><span class="ph">'+esc(c.phrase)+'</span><span class="pm">'+esc(c.meaning)+'</span></div>'; });
+    html += '</div>';
+  }
+  document.getElementById('detailContent').innerHTML = html;
+}
+
+function detailKnow(){ advanceWord(state.lib, state.detailWord); showList(); }
+function detailForgot(){ resetWord(state.lib, state.detailWord); showList(); }
+
+function showProgress(){
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('progressView').style.display = 'flex';
+
+  var lib = state.lib, all = WORD_DATA[lib]||[], p = loadProgress();
+  var words = (p[lib]&&p[lib].words)||{}, stats = {due:0,new:0,learning:0,mastered:0}, mastered=[], now=Date.now();
+
+  for(var i=0;i<all.length;i++){
+    var s = words[all[i].word]||{s:0,r:0};
+    if(s.s===0) stats.new++; else if(s.s>=1&&s.s<=5&&s.r<=now) stats.due++; else if(s.s>=1&&s.s<=5&&s.r>now) stats.learning++; else if(s.s>=6){ stats.mastered++; if(mastered.length<50) mastered.push(all[i]); }
+  }
+
+  var html = '<div style="font-size:14px;color:#999;padding-bottom:8px">'+LIBS.find(function(l){return l.k===lib}).l+' · 总词数 '+all.length+'</div>';
+  html += '<div class="stats-grid">';
+  html += '<div class="stat-cell"><span class="num due">'+stats.due+'</span><span class="lbl">待复习</span></div>';
+  html += '<div class="stat-cell"><span class="num new">'+stats.new+'</span><span class="lbl">未学</span></div>';
+  html += '<div class="stat-cell"><span class="num learning">'+stats.learning+'</span><span class="lbl">学习中</span></div>';
+  html += '<div class="stat-cell"><span class="num mastered">'+stats.mastered+'</span><span class="lbl">已掌握</span></div>';
+  html += '</div>';
+  if(mastered.length){
+    html += '<div class="pg-section-title">已掌握单词</div>';
+    mastered.forEach(function(w){ html += '<div style="display:flex;padding:12px 0;border-bottom:1px solid #FAFAFA;text-decoration:line-through;color:#CCC"><span style="font-size:16px;min-width:130px">'+esc(w.word)+'</span><span style="font-size:15px;flex:1">'+(w.meanings||[]).join(', ')+'</span></div>'; });
+  }
+  document.getElementById('progressContent').innerHTML = html;
+}
+
+function resetAll(){
+  if(confirm('将清空当前词库所有学习进度，确定吗？')){
+    var p = loadProgress(); delete p[state.lib]; saveProgress(p); showProgress();
+  }
+}
+
+function findWord(lib, word){
+  var all = WORD_DATA[lib]||[];
+  for(var i=0;i<all.length;i++){ if(all[i].word===word) return all[i]; }
+  return null;
+}
+
+function toast(msg){
+  var t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block';
+  setTimeout(function(){t.style.display='none'},1500);
+}
+
+// ============ CHECK-IN ============
+function checkIn(){
+  var p = loadProgress(), lib = state.lib;
+  var today = getToday();
+  var last = p[lib]&&p[lib]._lastCheckin || '';
+  if(last===today) return;
+  if(!p[lib]) p[lib]={words:{}};
+  p[lib]._lastCheckin = today; saveProgress(p);
+
+  var quotes = ['不积跬步，无以至千里。','每天进步一点点，坚持带来大改变。','学习是灯，努力是油。','你所背的每一个单词，都是未来的垫脚石。','今日记一词，明日进一步。','放弃不难，但坚持一定很酷。','世界上最快的捷径，就是脚踏实地。'];
+  var quote = quotes[Math.floor(Math.random()*quotes.length)];
+  var ytd = getYesterdayStats(lib);
+  var msg = quote;
+  if(ytd) msg = '昨日复习 '+ytd.reviewed+' 词 · 新学 '+ytd.newLearned+' 词\n\n'+quote;
+
+  document.getElementById('checkinMsg').textContent = msg;
+  document.getElementById('checkinModal').style.display = 'flex';
+}
+
+function closeCheckin(){ document.getElementById('checkinModal').style.display = 'none'; }
+function getYesterdayStats(lib){
+  var p = loadProgress();
+  var d = new Date(); d.setDate(d.getDate()-1);
+  var y = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  if(p[lib]&&p[lib].daily&&p[lib].daily[y]) return p[lib].daily[y];
+  return null;
+}
+
+// ============ EVENTS ============
+document.getElementById('libSelect').addEventListener('change', function(){ state.lib=this.value; state.section=0; buildSections(); buildLibs(); renderList(); });
+document.getElementById('secSelect').addEventListener('change', function(){ state.section=parseInt(this.value); renderList(); });
+document.getElementById('searchInput').addEventListener('input', function(){ renderList(); });
+
+// ============ INIT ============
+buildLibs();
+buildSections();
+showList();
+setTimeout(checkIn, 500);
+
+// Register service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
