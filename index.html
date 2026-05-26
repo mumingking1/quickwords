@@ -25,6 +25,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
 .list{flex:1;min-height:0;overflow-y:auto;padding:0 12px;-webkit-overflow-scrolling:touch}
 .word-row{display:flex;align-items:baseline;padding:14px 4px;border-bottom:1px solid #FAFAFA;cursor:pointer;user-select:none;-webkit-user-select:none}
 .word-row .ic{font-size:13px;width:22px;text-align:center;margin-right:6px;flex-shrink:0}
+.word-row .ic.act{cursor:pointer}
 .word-row.mastered .ic,.word-row.mastered .w,.word-row.mastered .m{color:#CCC;text-decoration:line-through}
 .word-row .w{font-size:18px;font-weight:700;color:#111;min-width:110px;margin-right:10px;pointer-events:none}
 .word-row .m{font-size:14px;color:#999;flex:1;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
@@ -217,7 +218,8 @@ function renderList(){
     var w=words[i], ms=(w.meanings||[]).join(', ');
     var isM = S.filter==='mastered', isL = S.filter==='learning';
     html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word||w.w)+'" data-w="'+esc(w.word||w.w)+'" data-type="'+(isM?'mastered':S.filter)+'">';
-    html += '<span class="ic">'+(isL?(w._s||0)+'/6':isM?'✓':'')+'</span>';
+    var icCls = (isL||isM) ? 'ic' : 'ic act';
+    html += '<span class="'+icCls+'" data-act="'+(isL||isM?'':'master')+'">'+(isL?(w._s||0)+'/6':isM?'✓':'○')+'</span>';
     html += '<span class="w">'+esc(w.word||w.w)+'</span>';
     html += '<span class="m">'+esc(ms)+'</span>';
     if(isL) html += '<span class="due-in">'+countdown(w.r)+'</span>';
@@ -284,6 +286,7 @@ function onActClick(e){
   e.stopPropagation();
   var row=this.parentNode, word=getRowWord(row), act=this.dataset.act;
   if(act==='detail'){ S.detailWord=word; showDetail(); }
+  else if(act==='master'){ masterWord(S.lib,word); removeWord(word,'due','new','learning'); addToMastered(word); }
   else if(act==='unmaster'){ resetWord(S.lib,word); removeWord(word,'mastered'); }
 }
 
