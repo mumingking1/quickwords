@@ -407,12 +407,22 @@ function addToMastered(word){
 }
 
 function speak(word){
-  if(!window.speechSynthesis){ toast('浏览器不支持发音'); return; }
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-US';
-  u.rate = 0.8;
-  window.speechSynthesis.speak(u);
+  // Try Web Speech API first
+  if(window.speechSynthesis && window.speechSynthesis.getVoices){
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(word);
+    u.lang = 'en-US'; u.rate = 0.8;
+    // Need voices loaded
+    var voices = window.speechSynthesis.getVoices();
+    if(voices.length > 0){ window.speechSynthesis.speak(u); return; }
+    window.speechSynthesis.onvoiceschanged = function(){
+      window.speechSynthesis.speak(u);
+    };
+    return;
+  }
+  // Fallback: youdao TTS audio
+  var a = new Audio('https://dict.youdao.com/dictvoice?audio='+encodeURIComponent(word)+'&type=1');
+  a.play().catch(function(){ toast('发音暂不可用'); });
 }
 
 function toast(msg){ var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},1200); }
