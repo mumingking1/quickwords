@@ -49,7 +49,6 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
 .detail-btns{display:flex;gap:12px;margin:28px 0;padding-top:20px;border-top:1px solid #EEE}
 .detail-btns button{flex:1;padding:14px;font-size:15px;border-radius:8px;border:1px solid #DDD;background:#FFF;cursor:pointer}
 .detail-btns .btn-adv{border-color:#111;color:#111}
-.detail-btns .btn-master{border-color:#4A90D9;color:#4A90D9}
 .detail-btns .btn-reset{color:#999}
 .stats-grid{display:flex;padding:14px 0;border-bottom:1px solid #EEE}
 .sc{flex:1;text-align:center}
@@ -92,7 +91,6 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
   <div id="detailContent"></div>
   <div class="detail-btns">
     <button class="btn-reset" onclick="detailReset()">不认识</button>
-    <button class="btn-master" onclick="detailMaster()">直接掌握</button>
     <button class="btn-adv" onclick="detailAdvance()">认识</button>
   </div>
 </div>
@@ -268,7 +266,7 @@ function onSwipe(e){
   var word=getRowWord(this); if(!word) return;
 
   if(dx<-50) { advanceWord(S.lib,word); removeWord(word,'due','new','mastered'); }
-  else if(dx>50) { resetWord(S.lib,word); removeWord(word,'due'); }
+  else if(dx>50) { masterWord(S.lib,word); removeWord(word,'due','new'); addToMastered(word); }
 }
 
 function onClickRow(e){
@@ -360,8 +358,7 @@ function showDetail(){
 }
 
 function detailAdvance(){ advanceWord(S.lib,S.detailWord); toast('已认识'); removeFromAny(S.detailWord); showList(); }
-function detailReset(){ resetWord(S.lib,S.detailWord); toast('已标记不认识'); removeFromAny(S.detailWord); showList(); }
-function detailMaster(){ masterWord(S.lib,S.detailWord); toast('已掌握'); removeFromAny(S.detailWord); S.masterWords.push(findWord(S.lib,S.detailWord)); showList(); }
+function detailReset(){ resetWord(S.lib,S.detailWord); toast('不认识，退回底部'); S.dueWords.push(findWord(S.lib,S.detailWord)); showList(); }
 
 function showProgress(){
   document.getElementById('listView').style.display='none';
@@ -388,6 +385,11 @@ function findWord(lib,word){ var all=WORD_DATA[lib]||[]; for(var i=0;i<all.lengt
 function removeFromAny(word){
   removeWord(word,'due','new','mastered');
   updateTabs();
+}
+
+function addToMastered(word){
+  var w = findWord(S.lib, word);
+  if(w) S.masterWords.push(w);
 }
 
 function toast(msg){ var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},1200); }
