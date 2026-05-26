@@ -1,4 +1,4 @@
-var CACHE = 'quickwords-v1';
+var CACHE = 'quickwords-v2';
 var FILES = [
   'index.html',
   'manifest.json',
