@@ -30,6 +30,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
 .word-row .m{font-size:14px;color:#999;flex:1;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
 .word-row .act{font-size:20px;color:#DDD;padding:0 4px;flex-shrink:0;z-index:1}
 .word-row .act:active{color:#999}
+.word-row .due-in{font-size:11px;color:#BBB;flex-shrink:0;margin-left:8px}
 .empty{text-align:center;color:#CCC;font-size:14px;padding-top:100px}
 #detailView,#progressView{display:none;flex-direction:column;height:100vh;overflow-y:auto;padding:0 12px}
 .detail-back,.pg-back{font-size:28px;color:#BBB;cursor:pointer;padding:14px 0}
@@ -80,7 +81,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
   <div class="tabs" id="tabs">
     <span class="tab on" data-filter="all">全部</span>
     <span class="tab" data-filter="due">待复习<span class="num" id="dueNum"></span></span>
-    <span class="tab" data-filter="new">新词<span class="num" id="newNum"></span></span>
+    <span class="tab" data-filter="learning">已学<span class="num" id="learnNum"></span></span>
     <span class="tab" data-filter="mastered">已掌握<span class="num" id="okNum"></span></span>
   </div>
   <div class="list" id="wordList"></div>
@@ -120,7 +121,7 @@ var SEC = 75;
 var LIBS = [{k:'cet4',l:'四级'},{k:'cet6',l:'六级'},{k:'postgrad',l:'考研'}];
 var STAGES = ['未学习','第1次','第2次(1天)','第3次(3天)','第4次(7天)','第5次(15天)','已掌握'];
 
-var S = { lib:'cet4', sec:0, filter:'all', dueWords:[], newWords:[], masterWords:[], detailWord:null };
+var S = { lib:'cet4', sec:0, filter:'all', dueWords:[], newWords:[], learnWords:[], masterWords:[], detailWord:null, studyStart:Date.now() };
 
 function loadP(){ try{return JSON.parse(localStorage.getItem('qw_v2'))||{}}catch(e){return{}} }
 function saveP(p){ try{localStorage.setItem('qw_v2',JSON.stringify(p))}catch(e){} }
@@ -167,23 +168,26 @@ function pad(n){ return n<10?'0'+n:''+n; }
 function shuffle(arr){ var a=[];for(var i=0;i<arr.length;i++)a.push(arr[i]);for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function cssId(s){ return String(s).replace(/[^a-zA-Z0-9_-]/g,'_'); }
+function countdown(r){ if(!r)return''; var d=Math.ceil((r-Date.now())/86400000); if(d<=0)return '今天'; if(d===1)return '明天'; return d+'天后'; }
 
 // ====== LOAD SECTION ======
 function loadSection(){
   var lib=S.lib, sec=S.sec, all=WORD_DATA[lib]||[];
   var start=sec*SEC, end=Math.min(start+SEC,all.length);
   var secWords=all.slice(start,end);
-  var now=Date.now(), due=[], nw=[], mw=[];
+  var now=Date.now(), due=[], nw=[], lw=[], mw=[];
 
   for(var i=0;i<secWords.length;i++){
     var w=secWords[i], st=getStage(lib,w.word);
     if(st.s===0) nw.push(w);
     else if(st.s>=1&&st.s<=5&&st.r<=now) due.push(w);
+    else if(st.s>=1&&st.s<=5&&st.r>now) lw.push(w);
     else if(st.s>=6) mw.push(w);
   }
 
   S.dueWords = shuffle(due);
   S.newWords = shuffle(nw);
+  S.learnWords = lw.sort(function(a,b){return a.r-b.r;});
   S.masterWords = mw.sort(function(a,b){return a.word>b.word?1:-1;});
   S.filter = 'all';
   updateTabs();
@@ -196,7 +200,7 @@ function renderList(){
 
   if(S.filter==='all') words = S.dueWords.concat(S.newWords);
   else if(S.filter==='due') words = S.dueWords;
-  else if(S.filter==='new') words = S.newWords;
+  else if(S.filter==='learning') words = S.learnWords;
   else if(S.filter==='mastered') words = S.masterWords;
 
   if(q){
@@ -211,16 +215,17 @@ function renderList(){
   var html='';
   for(var i=0;i<words.length;i++){
     var w=words[i], ms=(w.meanings||[]).join(', ');
-    var isM = S.filter==='mastered';
-    html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word)+'" data-w="'+esc(w.word)+'" data-type="'+(isM?'mastered':S.filter)+'">';
-    html += '<span class="ic">'+(isM?'✓':'○')+'</span>';
-    html += '<span class="w">'+esc(w.word)+'</span>';
+    var isM = S.filter==='mastered', isL = S.filter==='learning';
+    html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word||w.w)+'" data-w="'+esc(w.word||w.w)+'" data-type="'+(isM?'mastered':S.filter)+'">';
+    html += '<span class="ic">'+(isM?'✓':isL?'↻':'○')+'</span>';
+    html += '<span class="w">'+esc(w.word||w.w)+'</span>';
     html += '<span class="m">'+esc(ms)+'</span>';
+    if(isL) html += '<span class="due-in">'+countdown(w.r)+'</span>';
     if(isM) html += '<span class="act" data-act="unmaster">✕</span>';
-    else html += '<span class="act" data-act="detail">›</span>';
+    else if(!isL) html += '<span class="act" data-act="detail">›</span>';
     html += '</div>';
   }
-  if(!html) html='<div class="empty">'+(q?'无匹配单词': S.filter==='mastered'?'暂无已掌握单词':'本节暂无单词')+'</div>';
+  if(!html) html='<div class="empty">'+(q?'无匹配单词': S.filter==='mastered'?'暂无已掌握单词':S.filter==='learning'?'暂无学习中的单词':'本节暂无单词')+'</div>';
 
   document.getElementById('wordList').innerHTML = html;
   bindItems();
@@ -228,7 +233,7 @@ function renderList(){
 
 function updateTabs(){
   document.getElementById('dueNum').textContent = S.dueWords.length>0 ? S.dueWords.length : '';
-  document.getElementById('newNum').textContent = S.newWords.length>0 ? S.newWords.length : '';
+  document.getElementById('learnNum').textContent = S.learnWords.length>0 ? S.learnWords.length : '';
   document.getElementById('okNum').textContent = S.masterWords.length>0 ? S.masterWords.length : '';
 
   var tabs = document.querySelectorAll('.tab');
@@ -265,8 +270,8 @@ function onSwipe(e){
   e.preventDefault(); // Block subsequent click event
   var word=getRowWord(this); if(!word) return;
 
-  if(dx<-50) { advanceWord(S.lib,word); removeWord(word,'due','new','mastered'); }
-  else if(dx>50) { masterWord(S.lib,word); removeWord(word,'due','new'); addToMastered(word); }
+  if(dx<-50) { advanceWord(S.lib,word); removeWord(word,'due','new','learning','mastered'); }
+  else if(dx>50) { masterWord(S.lib,word); removeWord(word,'due','new','learning'); addToMastered(word); }
 }
 
 function onClickRow(e){
@@ -289,6 +294,7 @@ function removeWord(word){
     var arr;
     if(sources[s]==='due') arr=S.dueWords;
     else if(sources[s]==='new') arr=S.newWords;
+    else if(sources[s]==='learning') arr=S.learnWords;
     else if(sources[s]==='mastered') arr=S.masterWords;
     if(!arr) continue;
     for(var i=0;i<arr.length;i++){ if(arr[i].word===word){ arr.splice(i,1); break; } }
@@ -383,7 +389,7 @@ function showProgress(){
 function resetAll(){ if(confirm('确定清空当前词库所有进度？')){ var p=loadP();delete p[S.lib];saveP(p);showProgress();} }
 function findWord(lib,word){ var all=WORD_DATA[lib]||[]; for(var i=0;i<all.length;i++){if(all[i].word===word)return all[i];} return null; }
 function removeFromAny(word){
-  removeWord(word,'due','new','mastered');
+  removeWord(word,'due','new','learning','mastered');
   updateTabs();
 }
 
@@ -399,10 +405,30 @@ function checkIn(){
   var p=loadP(), lib=S.lib, today=getToday();
   if(!p[lib]) p[lib]={words:{}};
   if(p[lib]._lastCheckin===today) return;
+  // Save study duration from last session
+  if(p[lib]._studyStart){
+    var dur = Math.round((Date.now()-p[lib]._studyStart)/60000);
+    if(!p[lib]._lastDuration) p[lib]._lastDuration=dur;
+  }
+  p[lib]._studyStart = Date.now();
   p[lib]._lastCheckin=today; saveP(p);
+
+  var now = new Date();
+  var weekDays = ['日','一','二','三','四','五','六'];
+  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 星期'+weekDays[now.getDay()];
+  var y = getYtd(lib);
+  var dur = p[lib]._lastDuration || 0;
+
   var Q=['不积跬步，无以至千里。','每天进步一点点，坚持带来大改变。','学习是灯，努力是油。','你所背的每一个单词，都是未来的垫脚石。','今日记一词，明日进一步。','放弃不难，但坚持一定很酷。','世界上最快的捷径，就是脚踏实地。'];
-  var q=Q[Math.floor(Math.random()*Q.length)], y=getYtd(lib);
-  var m=q; if(y) m='昨日复习 '+y.reviewed+' 词 · 新学 '+y.newLearned+' 词\n\n'+q;
+  var q=Q[Math.floor(Math.random()*Q.length)];
+
+  var m = dateStr+'\n';
+  if(y) m += '昨日复习 '+y.reviewed+' 词 · 新学 '+y.newLearned+' 词';
+  else m += '昨日未学习';
+  m += '\n昨日学习 '+dur+' 分钟';
+  m += '\n\n今日待复习 '+S.dueWords.length+' 词';
+  m += '\n\n'+q;
+
   document.getElementById('checkinMsg').textContent=m;
   document.getElementById('checkinModal').style.display='flex';
 }
@@ -421,6 +447,12 @@ if(!P0._migrated){
 buildSelects();
 loadSection();
 document.getElementById('searchInput').value='';
+window.addEventListener('beforeunload', function(){
+  var p=loadP(), lib=S.lib;
+  if(!p[lib]) p[lib]={words:{}};
+  p[lib]._studyStart = Date.now();
+  saveP(p);
+});
 setTimeout(checkIn,600);
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 </script>
