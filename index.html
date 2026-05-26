@@ -354,7 +354,10 @@ function showDetail(){
   var lib=S.lib, word=S.detailWord, data=findWord(lib,word);
   if(!data){ toast('未找到'); showList(); return; }
   var st=getStage(lib,word);
-  var html='<div class="detail-word">'+esc(word)+'</div>';
+  var html='<div style="display:flex;align-items:center;gap:12px">';
+  html+='<div class="detail-word">'+esc(word)+'</div>';
+  html+='<span style="font-size:28px;cursor:pointer" onclick="speak(\''+esc(word)+'\')">🔊</span>';
+  html+='</div>';
   html+='<div class="detail-stage">'+STAGES[Math.min(st.s,6)]+'</div>';
   if(data.phonetic_uk) html+='<div class="detail-phonetic">英 /'+esc(data.phonetic_uk)+'/  美 /'+esc(data.phonetic_us||data.phonetic_uk)+'/</div>';
   if(data.pos) html+='<div class="detail-pos">'+esc(data.pos)+'</div>';
@@ -401,6 +404,15 @@ function removeFromAny(word){
 function addToMastered(word){
   var w = findWord(S.lib, word);
   if(w) S.masterWords.push(w);
+}
+
+function speak(word){
+  if(!window.speechSynthesis){ toast('浏览器不支持发音'); return; }
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.rate = 0.8;
+  window.speechSynthesis.speak(u);
 }
 
 function toast(msg){ var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},1200); }
