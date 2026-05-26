@@ -217,7 +217,7 @@ function renderList(){
     var w=words[i], ms=(w.meanings||[]).join(', ');
     var isM = S.filter==='mastered', isL = S.filter==='learning';
     html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word||w.w)+'" data-w="'+esc(w.word||w.w)+'" data-type="'+(isM?'mastered':S.filter)+'">';
-    html += '<span class="ic">'+(isM?'✓':isL?'↻':'○')+'</span>';
+    html += '<span class="ic">'+(isL?w.s+'/6':isM?'✓':'')+'</span>';
     html += '<span class="w">'+esc(w.word||w.w)+'</span>';
     html += '<span class="m">'+esc(ms)+'</span>';
     if(isL) html += '<span class="due-in">'+countdown(w.r)+'</span>';
