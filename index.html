@@ -10,8 +10,9 @@
 <link rel="manifest" href="manifest.json">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#FFF;color:#111;height:100vh;overflow:hidden}
-#app{display:flex;flex-direction:column;height:100vh}
+html{height:100%}
+body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;background:#FFF;color:#111;height:100%;overflow:hidden;margin:0}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column}
 .header{display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #EEE;gap:6px}
 .header select{font-size:14px;color:#666;border:none;background:none;padding:4px;-webkit-appearance:none;max-width:45%}
 .search-bar{padding:8px 12px;border-bottom:1px solid #EEE}
@@ -20,7 +21,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;backgr
 .tab{font-size:13px;color:#999;padding:10px 12px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tab.on{color:#111;border-bottom-color:#111}
 .tab .num{font-size:11px;color:#BBB;margin-left:2px}
-.list{flex:1;overflow-y:auto;padding:0 12px;-webkit-overflow-scrolling:touch}
+.list{flex:1;min-height:0;overflow-y:auto;padding:0 12px;-webkit-overflow-scrolling:touch}
 .word-row{display:flex;align-items:baseline;padding:14px 4px;border-bottom:1px solid #FAFAFA;cursor:pointer;user-select:none;-webkit-user-select:none}
 .word-row .ic{font-size:13px;width:22px;text-align:center;margin-right:6px;flex-shrink:0}
 .word-row.mastered .ic,.word-row.mastered .w,.word-row.mastered .m{color:#CCC;text-decoration:line-through}
@@ -166,6 +167,7 @@ function pad(n){ return n<10?'0'+n:''+n; }
 
 function shuffle(arr){ var a=[];for(var i=0;i<arr.length;i++)a.push(arr[i]);for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cssId(s){ return String(s).replace(/[^a-zA-Z0-9_-]/g,'_'); }
 
 // ====== LOAD SECTION ======
 function loadSection(){
@@ -211,7 +213,7 @@ function renderList(){
   for(var i=0;i<words.length;i++){
     var w=words[i], ms=(w.meanings||[]).join(', ');
     var isM = S.filter==='mastered';
-    html += '<div class="word-row'+(isM?' mastered':'')+'" data-w="'+esc(w.word)+'" data-type="'+(isM?'mastered':S.filter)+'">';
+    html += '<div class="word-row'+(isM?' mastered':'')+'" id="w_'+cssId(w.word)+'" data-w="'+esc(w.word)+'" data-type="'+(isM?'mastered':S.filter)+'">';
     html += '<span class="ic">'+(isM?'✓':'○')+'</span>';
     html += '<span class="w">'+esc(w.word)+'</span>';
     html += '<span class="m">'+esc(ms)+'</span>';
@@ -292,13 +294,12 @@ function removeWord(word){
     for(var i=0;i<arr.length;i++){ if(arr[i].word===word){ arr.splice(i,1); break; } }
   }
   // Remove DOM element
-  var row = document.querySelector('.word-row[data-w="'+esc(word)+'"]');
+  var row = document.getElementById('w_'+word);
   if(row) row.remove();
-
-  // Show empty message if list now empty
+  // Show empty if needed
   if(!document.querySelector('.word-row')){
     var q=(document.getElementById('searchInput').value||'').trim();
-    document.getElementById('wordList').innerHTML='<div class="empty">'+(q?'无匹配单词': S.filter==='mastered'?'暂无已掌握单词':'本节暂无单词')+'</div>';
+    document.getElementById('wordList').innerHTML='<div class="empty">'+(q?'无匹配单词':S.filter==='mastered'?'暂无已掌握单词':'本节暂无单词')+'</div>';
     bindItems();
   }
   updateTabs();
